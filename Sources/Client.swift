@@ -24,12 +24,10 @@ public extension HTTP {
         
         public func send(request: HTTP.Request) throws -> HTTP.Response {
             
-            var dataTask: URLSessionDataTask?
-            
-            return try send(request: request, dataTask: &dataTask)
+            return try send(request: request).response
         }
         
-        public func send(request: HTTP.Request, dataTask: inout URLSessionDataTask?) throws -> HTTP.Response {
+        public func send(request: HTTP.Request) throws -> (response: HTTP.Response, task: URLSessionDataTask) {
             
             // build request... 
             
@@ -46,7 +44,7 @@ public extension HTTP {
             
             var urlResponse: HTTPURLResponse?
             
-            dataTask = self.session.dataTask(with: urlRequest) { (data: Foundation.Data?, response: Foundation.URLResponse?, responseError: Swift.Error?) -> () in
+            let dataTask = self.session.dataTask(with: urlRequest) { (data: Foundation.Data?, response: Foundation.URLResponse?, responseError: Swift.Error?) -> () in
                 
                 responseData = data
                 
@@ -57,7 +55,7 @@ public extension HTTP {
                 semaphore.signal()
             }
             
-            dataTask!.resume()
+            dataTask.resume()
             
             // wait for task to finish
             
@@ -78,11 +76,10 @@ public extension HTTP {
             
             response.url = urlResponse!.url
             
-            return response
+            return (response, dataTask)
         }
     }
 }
-
 
 public extension HTTP.Client {
     
