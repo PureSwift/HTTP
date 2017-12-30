@@ -24,15 +24,9 @@ public extension HTTP {
         
         public func send(request: HTTP.Request) throws -> HTTP.Response {
             
-            return try send(request: request).response
-        }
-        
-        public func send(request: HTTP.Request) throws -> (response: HTTP.Response, task: URLSessionDataTask) {
+            // build request...
             
-            // build request... 
-            
-            guard let urlRequest = Foundation.URLRequest(request: request)
-                else { throw Error.BadRequest }
+            let urlRequest = Foundation.URLRequest(request: request)
             
             // execute request
             
@@ -76,23 +70,14 @@ public extension HTTP {
             
             response.url = urlResponse!.url
             
-            return (response, dataTask)
+            return response
         }
-    }
-}
-
-public extension HTTP.Client {
-    
-    public enum Error: Swift.Error {
-        
-        /// The provided request was malformed.
-        case BadRequest
     }
 }
 
 public extension Foundation.URLRequest {
     
-    init?(request: HTTP.Request) {
+    init(request: HTTP.Request) {
                 
         self.init(url: request.url, timeoutInterval: request.timeoutInterval)
         
