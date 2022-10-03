@@ -8,7 +8,7 @@
 
 import Foundation
 
-/// HTTP request.
+/// HTTP URL Request.
 public struct HTTPRequest {
     
     public var url: URL
@@ -17,5 +17,5 @@ public struct HTTPRequest {
     
     public var body: Data
     
-    public var headers: [String: String]
+    public var headers: [HTTPHeader: String]
 }

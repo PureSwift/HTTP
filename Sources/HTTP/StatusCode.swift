@@ -6,7 +6,7 @@
 //  Copyright © 2015 PureSwift. All rights reserved.
 //
 
-/// HTTP Method
+/// HTTP Status Code
 public struct HTTPStatusCode: RawRepresentable, Codable, Equatable, Hashable {
     
     public let rawValue: Int

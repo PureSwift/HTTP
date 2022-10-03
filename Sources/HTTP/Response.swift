@@ -12,7 +12,7 @@ import Foundation
 public struct HTTPResponse {
     
     /// Returns a dictionary containing all the HTTP header fields.
-    public var headers: [String: String]
+    public var headers: [HTTPHeader: String]
     
     /// Returns the HTTP status code for the response.
     public var statusCode: Int
