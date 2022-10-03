@@ -17,10 +17,32 @@ public protocol HTTPClient {
     func data(for request: URLRequest) async throws -> (Data, URLResponse)
 }
 
-@available(macOS 12.0, *)
 extension URLSession: HTTPClient {
     
     public func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        try await self.data(for: request, delegate: nil)
+        #if canImport(Darwin)
+        if #available(macOS 12, iOS 15.0, tvOS 15, watchOS 8, *) {
+            return try await self.data(for: request, delegate: nil)
+        } else {
+            return try await _data(for: request)
+        }
+        #else
+        return try await _data(for: request)
+        #endif
+    }
+}
+
+internal extension URLSession {
+    
+    func _data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        try await withCheckedThrowingContinuation { continuation in
+            self.dataTask(with: request) { data, response, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: (data ?? .init(), response!))
+                }
+            }
+        }
     }
 }
