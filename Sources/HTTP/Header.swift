@@ -41,6 +41,9 @@ extension HTTPHeader: CustomStringConvertible, CustomDebugStringConvertible {
 
 public extension HTTPHeader {
     
+    /// `Authorization` HTTP header
+    static var authorization: HTTPHeader    { "Authorization" }
+    
     /// `Date` HTTP header
     static var date: HTTPHeader             { "Date" }
     

@@ -20,7 +20,8 @@ let package = Package(
     targets: [
         .target(
             name: "HTTP",
-            dependencies: []),
+            dependencies: []
+        ),
         .testTarget(
             name: "HTTPTests",
             dependencies: ["HTTP"]

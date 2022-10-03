@@ -17,4 +17,10 @@ public protocol HTTPClient {
     func data(for request: URLRequest) async throws -> (Data, URLResponse)
 }
 
-extension URLSession: HTTPClient { }
+@available(macOS 12.0, *)
+extension URLSession: HTTPClient {
+    
+    public func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        try await self.data(for: request, delegate: nil)
+    }
+}
