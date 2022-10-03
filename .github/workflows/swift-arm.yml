@@ -40,5 +40,5 @@ jobs:
             name: swiftpm-5_6-build-debian-armv7
         - name: Test
           run: |
-            chmod +x ./release/BluetoothPackageTests.xctest
+            chmod +x ./release/HTTPPackageTests.xctest
             schroot -c bullseye-armv7 ./release/HTTPPackageTests.xctest
