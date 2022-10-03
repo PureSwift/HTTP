@@ -7,7 +7,7 @@
 //
 
 /// HTTP Method
-public struct HTTPMethod: RawRepresentable, Codable, Equatable, Hashable {
+public struct HTTPMethod: RawRepresentable, Codable, Equatable, Hashable, Sendable {
     
     public let rawValue: String
     

@@ -28,12 +28,16 @@ public struct HTTPVersion: Equatable, Hashable, Codable, Sendable {
 extension HTTPVersion: RawRepresentable {
     
     public init?(rawValue: String) {
-        guard rawValue.hasPrefix(Self.prefix),
-              rawValue.count >= Self.minLength else {
+        self.init(rawValue)
+    }
+    
+    internal init?<S>(_ string: S) where S: StringProtocol {
+        guard string.hasPrefix(Self.prefix),
+              string.count >= Self.minLength else {
             return nil
         }
-        let components = rawValue
-            .suffix(from: Self.prefix.endIndex)
+        let components = string
+            .suffix(from: string.index(string.startIndex, offsetBy: Self.prefix.count))
             .split(separator: Self.separator, maxSplits: 2)
         guard components.count == 2,
               let major = UInt16(components[0]),
@@ -44,7 +48,10 @@ extension HTTPVersion: RawRepresentable {
     }
     
     public var rawValue: String {
-        return Self.prefix + major.description + String(Self.separator) + minor.description
+        return Self.prefix
+            + major.description
+            + String(Self.separator)
+            + minor.description
     }
 }
 
