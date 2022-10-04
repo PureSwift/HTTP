@@ -34,6 +34,21 @@ final class HTTPTests: XCTestCase {
             XCTAssertEqual(message.head, .request(.init(method: .get, uri: "/", version: .v1)))
             XCTAssertEqual(HTTPMessage(data: message.data), message)
         }
+        
+        do {
+            let data = Data([71, 69, 84, 32, 47, 112, 105, 110, 103, 32, 72, 84, 84, 80, 47, 49, 46, 49, 13, 10, 72, 111, 115, 116, 58, 32, 108, 111, 99, 97, 108, 104, 111, 115, 116, 58, 56, 52, 53, 54, 13, 10, 65, 99, 99, 101, 112, 116, 58, 32, 42, 47, 42, 13, 10, 65, 99, 99, 101, 112, 116, 45, 76, 97, 110, 103, 117, 97, 103, 101, 58, 32, 101, 110, 45, 85, 83, 44, 101, 110, 59, 113, 61, 48, 46, 57, 13, 10, 67, 111, 110, 110, 101, 99, 116, 105, 111, 110, 58, 32, 107, 101, 101, 112, 45, 97, 108, 105, 118, 101, 13, 10, 65, 99, 99, 101, 112, 116, 45, 69, 110, 99, 111, 100, 105, 110, 103, 58, 32, 103, 122, 105, 112, 44, 32, 100, 101, 102, 108, 97, 116, 101, 13, 10, 85, 115, 101, 114, 45, 65, 103, 101, 110, 116, 58, 32, 120, 99, 116, 101, 115, 116, 47, 50, 49, 50, 53, 48, 32, 67, 70, 78, 101, 116, 119, 111, 114, 107, 47, 49, 51, 57, 56, 32, 68, 97, 114, 119, 105, 110, 47, 50, 50, 46, 49, 46, 48, 13, 10, 13, 10])
+            
+            print(String(data: data, encoding: .utf8) ?? "")
+            guard let message = HTTPRequest(data: data) else {
+                XCTFail()
+                return
+            }
+            
+            XCTAssertEqual(message.headers[.contentLength], "0")
+            XCTAssertEqual(message.headers.count, 1)
+            XCTAssertEqual(message.uri, "ping")
+            XCTAssertEqual(HTTPRequest(data: message.data), message)
+        }
     }
     
     func testResponseMessage() {
@@ -89,5 +104,30 @@ final class HTTPTests: XCTestCase {
         XCTAssertEqual(header.code, .ok)
         XCTAssertEqual(header.status, header.code.reasonPhrase)
         XCTAssertEqual(HTTPMessage.Header(rawValue: string), .response(header))
+    }
+    
+    func testServer() async throws {
+        let port = UInt16.random(in: 8080 ..< 9000)
+        let blob = Data(repeating: 0x01, count: 1024 * 1024 * 1)
+        var server: HTTPServer? = try await HTTPServer(configuration: .init(port: port), response: { (address, request) in
+            print(address, request.method, request.uri)
+            if request.uri == "/ping", request.method == .get {
+                return .init(code: .ok, body: Data("pong".utf8))
+            } else if request.uri == "/blob", request.method == .post {
+                return .init(code: request.body == blob ? .ok : 404)
+            } else {
+                return .init(code: 404)
+            }
+        })
+        assert(server != nil)
+        let client = URLSession(configuration: .ephemeral)
+        let serverURL  = URL(string: "http://localhost:\(port)")!
+        let (pongData, pongResponse) = try await client.data(for: URLRequest(url: serverURL.appendingPathComponent("ping")))
+        XCTAssertEqual((pongResponse as! HTTPURLResponse).statusCode, 200)
+        XCTAssertEqual(String(data: pongData, encoding: .utf8), "pong")
+        
+        //
+        server = nil
+        try await Task.sleep(nanoseconds: 10_000_000)
     }
 }

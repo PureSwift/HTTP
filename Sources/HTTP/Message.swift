@@ -8,7 +8,7 @@
 import Foundation
 
 /// HTTP Message
-public struct HTTPMessage: Equatable, Hashable, Sendable {
+internal struct HTTPMessage: Equatable, Hashable {
     
     public var head: Header
     
@@ -17,7 +17,7 @@ public struct HTTPMessage: Equatable, Hashable, Sendable {
     public var body: Data
 }
 
-public extension HTTPMessage {
+extension HTTPMessage {
     
     init?(data: Data) {
         var decoder = Decoder(data: data)
@@ -28,12 +28,12 @@ public extension HTTPMessage {
             self = value
         }
     }
-        
+    
     var data: Data {
         var data = Data()
         data.append(contentsOf: head.rawValue.utf8)
         data.append(contentsOf: "\n".utf8)
-        for (header, value) in headers {
+        for (header, value) in headers.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
             data.append(contentsOf: header.rawValue.utf8)
             data.append(contentsOf: ": ".utf8)
             data.append(contentsOf: value.utf8)
@@ -45,7 +45,7 @@ public extension HTTPMessage {
     }
 }
 
-// MARK: - Extensions
+// MARK: - Decoder
 
 extension HTTPMessage {
     
@@ -104,12 +104,16 @@ extension HTTPMessage {
                     }
                     // parse line
                     let headerComponents = line.split(separator: Self.headerSeparator, maxSplits: 1, omittingEmptySubsequences: true)
-                    guard let name = headerComponents.first, let value = headerComponents.last else {
+                    guard let name = headerComponents.first.map(String.init), var value = headerComponents.last else {
                         return .failure(.invalidHeaderLine)
                     }
+                    // remove whitespace prefix
+                    if value.first == " " {
+                        value.removeFirst()
+                    }
                     headers.append((
-                        HTTPHeader(rawValue: String(name)),
-                        String(value).trimmingCharacters(in: .whitespaces)
+                        HTTPHeader(rawValue: name),
+                        String(value)
                     ))
                 }
             } while true

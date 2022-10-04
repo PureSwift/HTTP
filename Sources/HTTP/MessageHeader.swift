@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Header
 
-public extension HTTPMessage {
+extension HTTPMessage {
     
     enum Header: Equatable, Hashable, Sendable {
         case request(Request)
@@ -51,7 +51,7 @@ extension HTTPMessage.Header {
 
 // MARK: - Request
 
-public extension HTTPMessage.Header {
+extension HTTPMessage.Header {
     
     struct Request: Equatable, Hashable, Sendable {
         
@@ -101,7 +101,7 @@ extension HTTPMessage.Header.Request: CustomStringConvertible, CustomDebugString
 
 // MARK: - Response
 
-public extension HTTPMessage.Header {
+extension HTTPMessage.Header {
     
     struct Response: Equatable, Hashable, Sendable {
         

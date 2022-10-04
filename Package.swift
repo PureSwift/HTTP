@@ -17,10 +17,18 @@ let package = Package(
             targets: ["HTTP"]
         ),
     ],
+    dependencies: [
+        .package(
+            url: "https://github.com/PureSwift/Socket.git",
+            branch: "main"
+        )
+    ],
     targets: [
         .target(
             name: "HTTP",
-            dependencies: []
+            dependencies: [
+                "Socket"
+            ]
         ),
         .testTarget(
             name: "HTTPTests",

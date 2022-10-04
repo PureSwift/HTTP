@@ -95,6 +95,30 @@ public extension HTTPStatusCode {
     /// as it might be disallowed when processing actually takes place.
     static var accepted: HTTPStatusCode                 { 202 }
     
+    // MARK: - 4xx Client Error
+    
+    /// Bad Request
+    ///
+    /// The server cannot or will not process the request due to something that is perceived to be a client
+    /// error (e.g., malformed request syntax, invalid request message framing,
+    /// or deceptive request routing)
+    static var badRequest: HTTPStatusCode               { 400 }
+    
+    /// Unauthorized ([RFC 7235](https://tools.ietf.org/html/rfc7235))
+    ///
+    /// Similar to **403 Forbidden**, but specifically for use when authentication is required and has
+    /// failed or has not yet been provided.
+    /// The response must include a WWW-Authenticate header field containing
+    /// a challenge applicable to the requested resource.
+    static var unauthorized: HTTPStatusCode             { 401 }
+    
+    /// Payload Too Large ([RFC 7231](https://tools.ietf.org/html/rfc7231))
+    ///
+    /// The request is larger than the server is willing or able to process.
+    ///
+    /// Called "Request Entity Too Large " previously.
+    static var payloadTooLarge: HTTPStatusCode          { 413 }
+    
     // MARK: - 5xx Server Error
     
     /// Internal Server Error
@@ -153,11 +177,11 @@ public extension HTTPStatusCode {
             case .temporaryRedirect:
                 return "Temporary Redirect"
             case .permanentRedirect:
-                return "Permanent Redirect"
+                return "Permanent Redirect"*/
             case .badRequest:
                 return "Bad Request"
             case .unauthorized:
-                return "Unauthorized"
+                return "Unauthorized"/*
             case .paymentRequired:
                 return "Payment Required"
             case .forbidden:
@@ -179,9 +203,9 @@ public extension HTTPStatusCode {
             case .lengthRequired:
                 return "Length Required"
             case .preconditionFailed:
-                return "Precondition Failed"
+                return "Precondition Failed"*/
             case .payloadTooLarge:
-                return "Payload Too Large"
+                return "Payload Too Large"/*
             case .uriTooLong:
                 return "URI Too Long"
             case .unsupportedMediaType:
