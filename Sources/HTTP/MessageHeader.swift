@@ -44,6 +44,11 @@ extension HTTPMessage.Header: RawRepresentable {
     }
 }
 
+extension HTTPMessage.Header {
+    
+    static var separator: String { " " }
+}
+
 // MARK: - Request
 
 public extension HTTPMessage.Header {
@@ -76,9 +81,9 @@ extension HTTPMessage.Header.Request: RawRepresentable {
     
     public var rawValue: String {
         method.rawValue
-            + HTTPMessage.headSeparator
+            + HTTPMessage.Header.separator
             + uri
-            + HTTPMessage.headSeparator
+            + HTTPMessage.Header.separator
             + version.rawValue
     }
 }
@@ -136,9 +141,9 @@ extension HTTPMessage.Header.Response: RawRepresentable {
     
     public var rawValue: String {
         version.rawValue
-            + HTTPMessage.headSeparator
+            + HTTPMessage.Header.separator
             + code.description
-            + HTTPMessage.headSeparator
+            + HTTPMessage.Header.separator
             + status
     }
 }

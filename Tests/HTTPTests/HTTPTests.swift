@@ -20,7 +20,7 @@ final class HTTPTests: XCTestCase {
         XCTAssertEqual(HTTPVersion.v2.rawValue, "HTTP/2.0")
         XCTAssertEqual(HTTPVersion(rawValue: "HTTP/2.0"), .v2)
     }
-    /*
+    
     func testMessage() {
         
         let string = """
@@ -33,7 +33,7 @@ final class HTTPTests: XCTestCase {
         Content-Length: 12
         Connection: close
         Content-Type: text/html
-
+        \r
         Hello world!
         """
         
@@ -47,7 +47,7 @@ final class HTTPTests: XCTestCase {
         XCTAssertEqual(message.headers[.contentType], "text/html")
         XCTAssertEqual(message.headers.count, 8)
         XCTAssertEqual(message.head, .response(.init(version: .v1_1, code: .ok)))
-    }*/
+    }
     
     func testRequestHeader() {
         let string = #"GET /logo.gif HTTP/1.1"#
