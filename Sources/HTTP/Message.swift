@@ -31,7 +31,16 @@ public extension HTTPMessage {
         
     var data: Data {
         var data = Data()
-        //data.append(head.rawValue.utf8)
+        data.append(contentsOf: head.rawValue.utf8)
+        data.append(contentsOf: "\n".utf8)
+        for (header, value) in headers {
+            data.append(contentsOf: header.rawValue.utf8)
+            data.append(contentsOf: ": ".utf8)
+            data.append(contentsOf: value.utf8)
+            data.append(contentsOf: "\n".utf8)
+        }
+        data.append(contentsOf: "\r\n".utf8)
+        data.append(body)
         return data
     }
 }
@@ -39,16 +48,6 @@ public extension HTTPMessage {
 // MARK: - Extensions
 
 extension HTTPMessage {
-    /*
-    static func decode<S>(_ data: S) where S: RandomAccessCollection, S.Element == UInt8, S.Index == Int {
-        var offset = 0
-        var splices = [Range<Int>]()
-        var currentLine: (Int, Int) = (0,0)
-        while offset < data.count {
-            let byte = data[offset]
-            
-        }
-    }*/
     
     struct Decoder {
         

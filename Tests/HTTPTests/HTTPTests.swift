@@ -21,32 +21,50 @@ final class HTTPTests: XCTestCase {
         XCTAssertEqual(HTTPVersion(rawValue: "HTTP/2.0"), .v2)
     }
     
-    func testMessage() {
+    func testRequestMessage() {
         
-        let string = """
-        HTTP/1.1 200 OK
-        Date: Sun, 10 Oct 2010 23:26:07 GMT
-        Server: Apache/2.2.8 (Ubuntu) mod_ssl/2.2.8 OpenSSL/0.9.8g
-        Last-Modified: Sun, 26 Sep 2010 22:04:35 GMT
-        ETag: "45b6-834-49130cc1182c0"
-        Accept-Ranges: bytes
-        Content-Length: 12
-        Connection: close
-        Content-Type: text/html
-        \r
-        Hello world!
-        """
-        
-        guard let message = HTTPMessage(data: Data(string.utf8)) else {
-            XCTFail()
-            return
+        do {
+            let string = "GET / HTTP/1.0\nContent-Length: 0\n\r\n"
+            guard let message = HTTPMessage(data: Data(string.utf8)) else {
+                XCTFail()
+                return
+            }
+            XCTAssertEqual(message.headers[.contentLength], "0")
+            XCTAssertEqual(message.headers.count, 1)
+            XCTAssertEqual(message.head, .request(.init(method: .get, uri: "/", version: .v1)))
+            XCTAssertEqual(HTTPMessage(data: message.data), message)
         }
-        
-        XCTAssertEqual(message.body, Data("Hello world!".utf8))
-        XCTAssertEqual(message.headers[.date], "Sun, 10 Oct 2010 23:26:07 GMT")
-        XCTAssertEqual(message.headers[.contentType], "text/html")
-        XCTAssertEqual(message.headers.count, 8)
-        XCTAssertEqual(message.head, .response(.init(version: .v1_1, code: .ok)))
+    }
+    
+    func testResponseMessage() {
+                
+        do {
+            let string = """
+            HTTP/1.1 200 OK
+            Date: Sun, 10 Oct 2010 23:26:07 GMT
+            Server: Apache/2.2.8 (Ubuntu) mod_ssl/2.2.8 OpenSSL/0.9.8g
+            Last-Modified: Sun, 26 Sep 2010 22:04:35 GMT
+            ETag: "45b6-834-49130cc1182c0"
+            Accept-Ranges: bytes
+            Content-Length: 12
+            Connection: close
+            Content-Type: text/html
+            \r
+            Hello world!
+            """
+            
+            guard let message = HTTPMessage(data: Data(string.utf8)) else {
+                XCTFail()
+                return
+            }
+            
+            XCTAssertEqual(message.body, Data("Hello world!".utf8))
+            XCTAssertEqual(message.headers[.date], "Sun, 10 Oct 2010 23:26:07 GMT")
+            XCTAssertEqual(message.headers[.contentType], "text/html")
+            XCTAssertEqual(message.headers.count, 8)
+            XCTAssertEqual(message.head, .response(.init(version: .v1_1, code: .ok)))
+            XCTAssertEqual(HTTPMessage(data: message.data), message)
+        }
     }
     
     func testRequestHeader() {
