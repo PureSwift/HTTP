@@ -145,7 +145,7 @@ final class HTTPTests: XCTestCase {
     
     func testServerGetBlob() async throws {
         let port = UInt16.random(in: 8080 ..< 9000)
-        let blob = Data(repeating: .random(in: .min ... .max), count: 1024 * 1024 * 2)
+        let blob = Data(repeating: .random(in: .min ... .max), count: 1024 * .random(in: 1 ... 10))
         var server: HTTPServer? = try await HTTPServer(configuration: .init(port: port), response: { (address, request) in
             if request.uri == "/blob", request.method == .get {
                 return request.body.isEmpty ? .init(code: .ok, body: blob) : .init(code: .badRequest)
@@ -168,7 +168,7 @@ final class HTTPTests: XCTestCase {
     
     func testServerPostBlob() async throws {
         let port = UInt16.random(in: 8080 ..< 9000)
-        let blob = Data(repeating: .random(in: .min ... .max), count: 1024 * .random(in: 100 ..< 512))
+        let blob = Data(repeating: .random(in: .min ... .max), count: 1024 * .random(in: 1 ... 10))
         var server: HTTPServer? = try await HTTPServer(configuration: .init(port: port), response: { (address, request) in
             if request.uri == "/blob", request.method == .post {
                 XCTAssertEqual(request.headers[.contentLength], blob.count.description)
