@@ -64,12 +64,15 @@ public final class HTTPServer {
             self?.log("Started HTTP Server")
             do {
                 while let socket = self?.socket {
-                    try Task.checkCancellation()
                     // wait for incoming sockets
                     let newSocket = try await Socket(fileDescriptor: socket.fileDescriptor.accept())
-                    self?.log("New connection")
+                    // read remote address
+                    let address = try newSocket.fileDescriptor.peerAddress(IPv4SocketAddress.self).address // TODO: Support IPv6
                     if let self = self {
-                        try await self.storage.newConnection(newSocket, server: self)
+                        // create connection actor
+                        let connection = await Connection(address: .v4(address), socket: newSocket, server: self)
+                        await self.storage.newConnection(connection)
+                        self.log("[\(address)] New connection")
                     }
                 }
             }
@@ -83,10 +86,14 @@ public final class HTTPServer {
     public func stop() {
         assert(task != nil)
         let socket = self.socket
+        let storage = self.storage
         self.task?.cancel()
         self.task = nil
         self.log("Stopped GATT Server")
-        Task { await socket.close() }
+        Task {
+            await storage.removeAllConnections()
+            await socket.close()
+        }
     }
 }
 
@@ -118,7 +125,7 @@ public extension HTTPServer {
             port: UInt16 = 8080,
             backlog: Int = 10_000,
             headerMaxSize: Int = 4096,
-            bodyMaxSize: Int = 1024 * 1024 * 2
+            bodyMaxSize: Int = 1024 * 1024 * 5
         ) {
             self.port = port
             self.backlog = backlog
@@ -136,15 +143,16 @@ internal extension HTTPServer {
         
         fileprivate init() { }
         
-        func newConnection(_ socket: Socket, server: HTTPServer) async throws {
-            // read remote address
-            let address = try socket.fileDescriptor.peerAddress(IPv4SocketAddress.self).address // TODO: Support IPv6
-            // create connection actor
-            connections[.v4(address)] = await Connection(address: .v4(address), socket: socket, server: server)
+        func newConnection(_ connection: Connection) {
+            connections[connection.address] = connection
         }
         
         func removeConnection(_ address: IPAddress) {
             self.connections[address] = nil
+        }
+        
+        func removeAllConnections() {
+            self.connections.removeAll()
         }
     }
 }
@@ -159,7 +167,7 @@ internal extension HTTPServer {
         
         let socket: Socket
         
-        private weak var server: HTTPServer?
+        private unowned var server: HTTPServer
         
         let configuration: Configuration
         
@@ -210,19 +218,19 @@ internal extension HTTPServer {
                 break
             case let .close(error):
                 isConnected = false
-                await server?.connection(address, didDisconnect: error)
+                await server.connection(address, didDisconnect: error)
             }
         }
         
         private func read(_ length: Int) async throws {
             let data = try await socket.read(length)
-            self.server?.log("[\(address)] Read \(data.count) bytes")
+            self.server.log("[\(address)] Read \(data.count) bytes")
             self.readData.append(data)
         }
         
         private func respond(_ response: HTTPResponse) async throws {
             let data = response.data
-            self.server?.log("[\(address)] Response \(response.code.rawValue) \(response.status) (\(data.count) bytes)")
+            self.server.log("[\(address)] Response \(response.code.rawValue) \(response.status) \(response.body.count) bytes")
             try await socket.write(data)
             await socket.close()
         }
@@ -233,18 +241,14 @@ internal extension HTTPServer {
         
         private func run() async {
             let headerMaxSize = configuration.headerMaxSize
-            let initialReadSize = min(headerMaxSize, 512)
+            let initialReadSize = max(min(headerMaxSize, 512), 5)
             do {
                 // read small chunk
                 try await read(initialReadSize)
                 // read remaning
                 if initialReadSize < headerMaxSize,
-                   readData.count > 2,
-                   readData.contains(HTTPMessage.Decoder.cr) == false,
-                   readData.contains(HTTPMessage.Decoder.nl) == false,
-                   readData.last != HTTPMessage.Decoder.nl,
-                   readData[readData.count - 2] == HTTPMessage.Decoder.cr,
-                   readData.count < headerMaxSize  {
+                   readData.count < headerMaxSize,
+                   readData.firstRange(of: HTTPMessage.Decoder.headerSuffixData) == nil {
                     let remainingSize = readData.count - headerMaxSize
                     try await read(remainingSize)
                 }
@@ -259,7 +263,7 @@ internal extension HTTPServer {
                 }
                 // get body
                 if let contentLength = request.headers[.contentLength].flatMap(Int.init), contentLength > 0 {
-                    guard contentLength > configuration.bodyMaxSize else {
+                    guard contentLength <= configuration.bodyMaxSize else {
                         try await respond(.payloadTooLarge)
                         return
                     }
@@ -272,16 +276,12 @@ internal extension HTTPServer {
                 } else {
                     request.body = Data()
                 }
+                self.server.log("[\(address)] \(request.method) \(request.uri) \(request.body.count) bytes")
                 // respond
-                guard let responseHandler = self.server?.response else {
-                    assertionFailure()
-                    try await respond(.internalServerError)
-                    return
-                }
-                let response = await responseHandler(address, request)
+                let response = await self.server.response(address, request)
                 try await respond(response)
             } catch {
-                self.server?.log("[\(address)] \(error.localizedDescription)")
+                self.server.log("[\(address)] \(error.localizedDescription)")
                 await self.socket.close()
             }
         }

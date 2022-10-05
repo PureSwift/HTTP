@@ -37,6 +37,10 @@ public struct HTTPResponse {
         self.status = status ?? code.reasonPhrase ?? ""
         self.headers = headers
         self.body = body
+        if body.isEmpty == false,
+           headers[.contentLength] == nil {
+            self.headers[.contentLength] = body.count.description
+        }
     }
 }
 

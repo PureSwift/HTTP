@@ -32,14 +32,14 @@ extension HTTPMessage {
     var data: Data {
         var data = Data()
         data.append(contentsOf: head.rawValue.utf8)
-        data.append(contentsOf: "\r\n".utf8)
+        data.append(contentsOf: HTTPMessage.Decoder.lineSeparator.utf8)
         for (header, value) in headers.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
             data.append(contentsOf: header.rawValue.utf8)
             data.append(contentsOf: ": ".utf8)
             data.append(contentsOf: value.utf8)
-            data.append(contentsOf: "\r\n".utf8)
+            data.append(contentsOf: HTTPMessage.Decoder.lineSeparator.utf8)
         }
-        data.append(contentsOf: "\r\n".utf8)
+        data.append(contentsOf: HTTPMessage.Decoder.lineSeparator.utf8)
         assert(data.suffix(4) == HTTPMessage.Decoder.headerSuffixData)
         data.append(body)
         return data
@@ -169,6 +169,8 @@ extension HTTPMessage.Decoder {
     static var cr: UInt8 { 13 }
     
     static var headerSeparator: Character { ":" }
+    
+    static var lineSeparator: String { "\r\n" }
     
     static var headerSuffix: String { "\r\n\r\n" }
     
