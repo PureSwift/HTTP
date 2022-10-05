@@ -28,17 +28,3 @@ jobs:
           with:
             name: swiftpm-5_6-build-debian-armv7
             path: .build/*/*.xctest
-    
-    linux-swift-5_6-armv7-debian-armv7-test:
-        name: Test Armv7
-        runs-on: [self-hosted, linux, ARM64, debian-unstable]
-        needs: linux-swift-5_6-armv7-debian-build
-        steps:
-        - name: Download artifacts
-          uses: actions/download-artifact@v3
-          with: 
-            name: swiftpm-5_6-build-debian-armv7
-        - name: Test
-          run: |
-            chmod +x ./release/HTTPPackageTests.xctest
-            schroot -c bullseye-armv7 ./release/HTTPPackageTests.xctest
