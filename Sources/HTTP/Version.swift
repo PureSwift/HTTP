@@ -38,7 +38,7 @@ extension HTTPVersion: RawRepresentable {
         }
         let components = string
             .suffix(from: string.index(string.startIndex, offsetBy: Self.prefix.count))
-            .split(separator: Self.separator, maxSplits: 2)
+            .split(separator: Self.separator, maxSplits: 1)
         guard components.count == 2,
               let major = UInt16(components[0]),
               let minor = UInt16(components[1]) else {

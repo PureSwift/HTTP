@@ -70,7 +70,7 @@ extension HTTPMessage.Header.Request: RawRepresentable {
     }
     
     internal init?<S>(_ string: S) where S: StringProtocol {
-        let components = string.split(separator: " ", maxSplits: 3, omittingEmptySubsequences: false)
+        let components = string.split(separator: " ", maxSplits: 2, omittingEmptySubsequences: false)
         guard components.count == 3,
               let version = HTTPVersion(components[2])
             else { return nil }

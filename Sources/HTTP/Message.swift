@@ -32,12 +32,12 @@ extension HTTPMessage {
     var data: Data {
         var data = Data()
         data.append(contentsOf: head.rawValue.utf8)
-        data.append(contentsOf: "\n".utf8)
+        data.append(contentsOf: "\r\n".utf8)
         for (header, value) in headers.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
             data.append(contentsOf: header.rawValue.utf8)
             data.append(contentsOf: ": ".utf8)
             data.append(contentsOf: value.utf8)
-            data.append(contentsOf: "\n".utf8)
+            data.append(contentsOf: "\r\n".utf8)
         }
         data.append(contentsOf: "\r\n".utf8)
         data.append(body)
@@ -96,7 +96,7 @@ extension HTTPMessage {
                 case let .failure(failure):
                     return .failure(failure)
                 case let .success(line):
-                    guard line != "\r" else {
+                    guard line.isEmpty == false else {
                         return .success(headers)
                     }
                     guard line.contains(Self.headerSeparator) else {
@@ -130,21 +130,21 @@ extension HTTPMessage {
         
         private mutating func readLine() -> Result<String, Decoder.Error> {
             let start = index
-            var length = 0
+            var lastCR: Int?
             while let byte = readByte() {
-                length += 1
-                guard byte == Self.nl else {
+                if byte == Self.cr {
+                    lastCR = index - 1
                     continue
                 }
-                guard length > 0 else {
-                    return .success("")
+                guard byte == Self.nl,
+                    let indexCR = lastCR,
+                    indexCR == index - 2 else {
+                    continue
                 }
-                let end = index - 1
-                let bytes = data[start ..< end]
-                guard let string = String(bytes: bytes, encoding: .utf8) else {
+                let bytes = data[start ..< indexCR] // TODO: Use no copy instance
+                guard let string = String(data: bytes, encoding: .utf8) else {
                     return .failure(.invalidCharacter)
                 }
-                assert(string.utf8.count == length - 1)
                 return .success(string)
             }
             return .failure(.endOfStream) // end of data

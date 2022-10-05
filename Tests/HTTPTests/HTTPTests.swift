@@ -24,19 +24,31 @@ final class HTTPTests: XCTestCase {
     func testRequestMessage() {
         
         do {
-            let string = "GET / HTTP/1.0\nContent-Length: 0\n\r\n"
-            guard let message = HTTPMessage(data: Data(string.utf8)) else {
-                XCTFail()
-                return
-            }
-            XCTAssertEqual(message.headers[.contentLength], "0")
-            XCTAssertEqual(message.headers.count, 1)
-            XCTAssertEqual(message.head, .request(.init(method: .get, uri: "/", version: .v1)))
-            XCTAssertEqual(HTTPMessage(data: message.data), message)
-        }
-        
-        do {
-            let data = Data([71, 69, 84, 32, 47, 112, 105, 110, 103, 32, 72, 84, 84, 80, 47, 49, 46, 49, 13, 10, 72, 111, 115, 116, 58, 32, 108, 111, 99, 97, 108, 104, 111, 115, 116, 58, 56, 52, 53, 54, 13, 10, 65, 99, 99, 101, 112, 116, 58, 32, 42, 47, 42, 13, 10, 65, 99, 99, 101, 112, 116, 45, 76, 97, 110, 103, 117, 97, 103, 101, 58, 32, 101, 110, 45, 85, 83, 44, 101, 110, 59, 113, 61, 48, 46, 57, 13, 10, 67, 111, 110, 110, 101, 99, 116, 105, 111, 110, 58, 32, 107, 101, 101, 112, 45, 97, 108, 105, 118, 101, 13, 10, 65, 99, 99, 101, 112, 116, 45, 69, 110, 99, 111, 100, 105, 110, 103, 58, 32, 103, 122, 105, 112, 44, 32, 100, 101, 102, 108, 97, 116, 101, 13, 10, 85, 115, 101, 114, 45, 65, 103, 101, 110, 116, 58, 32, 120, 99, 116, 101, 115, 116, 47, 50, 49, 50, 53, 48, 32, 67, 70, 78, 101, 116, 119, 111, 114, 107, 47, 49, 51, 57, 56, 32, 68, 97, 114, 119, 105, 110, 47, 50, 50, 46, 49, 46, 48, 13, 10, 13, 10])
+            // GET /ping HTTP/1.1
+            // Host: localhost:8456
+            // Accept: */*
+            // Accept-Language: en-US,en;q=0.9
+            // Connection: keep-alive
+            // Accept-Encoding: gzip, deflate
+            // User-Agent: xctest/21250 CFNetwork/1398 Darwin/22.1.0
+            
+            let data = Data([
+                71, 69, 84, 32, 47, 112, 105, 110, 103, 32, 72, 84, 84, 80, 47, 49, 46, 49,
+                13, 10,
+                72, 111, 115, 116, 58, 32, 108, 111, 99, 97, 108, 104, 111, 115, 116, 58, 56, 52, 53, 54,
+                13, 10,
+                65, 99, 99, 101, 112, 116, 58, 32, 42, 47, 42,
+                13, 10,
+                65, 99, 99, 101, 112, 116, 45, 76, 97, 110, 103, 117, 97, 103, 101, 58, 32, 101, 110, 45, 85, 83, 44, 101, 110, 59, 113, 61, 48, 46, 57,
+                13, 10,
+                67, 111, 110, 110, 101, 99, 116, 105, 111, 110, 58, 32, 107, 101, 101, 112, 45, 97, 108, 105, 118, 101,
+                13, 10,
+                65, 99, 99, 101, 112, 116, 45, 69, 110, 99, 111, 100, 105, 110, 103, 58, 32, 103, 122, 105, 112, 44, 32, 100, 101, 102, 108, 97, 116, 101,
+                13, 10,
+                85, 115, 101, 114, 45, 65, 103, 101, 110, 116, 58, 32, 120, 99, 116, 101, 115, 116, 47, 50, 49, 50, 53, 48, 32, 67, 70, 78, 101, 116, 119, 111, 114, 107, 47, 49, 51, 57, 56, 32, 68, 97, 114, 119, 105, 110, 47, 50, 50, 46, 49, 46, 48,
+                13, 10,
+                13, 10
+            ])
             
             print(String(data: data, encoding: .utf8) ?? "")
             guard let message = HTTPRequest(data: data) else {
@@ -44,9 +56,10 @@ final class HTTPTests: XCTestCase {
                 return
             }
             
-            XCTAssertEqual(message.headers[.contentLength], "0")
-            XCTAssertEqual(message.headers.count, 1)
-            XCTAssertEqual(message.uri, "ping")
+            XCTAssertNil(message.headers[.contentLength])
+            XCTAssertEqual(message.headers[.userAgent], "xctest/21250 CFNetwork/1398 Darwin/22.1.0")
+            XCTAssertEqual(message.headers.count, 6)
+            XCTAssertEqual(message.uri, "/ping")
             XCTAssertEqual(HTTPRequest(data: message.data), message)
         }
     }
@@ -55,15 +68,15 @@ final class HTTPTests: XCTestCase {
                 
         do {
             let string = """
-            HTTP/1.1 200 OK
-            Date: Sun, 10 Oct 2010 23:26:07 GMT
-            Server: Apache/2.2.8 (Ubuntu) mod_ssl/2.2.8 OpenSSL/0.9.8g
-            Last-Modified: Sun, 26 Sep 2010 22:04:35 GMT
-            ETag: "45b6-834-49130cc1182c0"
-            Accept-Ranges: bytes
-            Content-Length: 12
-            Connection: close
-            Content-Type: text/html
+            HTTP/1.1 200 OK\r
+            Date: Sun, 10 Oct 2010 23:26:07 GMT\r
+            Server: Apache/2.2.8 (Ubuntu) mod_ssl/2.2.8 OpenSSL/0.9.8g\r
+            Last-Modified: Sun, 26 Sep 2010 22:04:35 GMT\r
+            ETag: "45b6-834-49130cc1182c0"\r
+            Accept-Ranges: bytes\r
+            Content-Length: 12\r
+            Connection: close\r
+            Content-Type: text/html\r
             \r
             Hello world!
             """

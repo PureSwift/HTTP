@@ -55,4 +55,7 @@ public extension HTTPHeader {
     
     /// `Content-Length` HTTP header
     static var contentLength: HTTPHeader    { "Content-Length" }
+    
+    /// `User-Agent` HTTP Header
+    static var userAgent: HTTPHeader        { "User-Agent" }
 }
