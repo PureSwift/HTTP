@@ -239,15 +239,17 @@ internal extension HTTPServer {
                 try await read(initialReadSize)
                 // read remaning
                 if initialReadSize < headerMaxSize,
+                   readData.count > 2,
                    readData.contains(HTTPMessage.Decoder.cr) == false,
+                   readData.contains(HTTPMessage.Decoder.nl) == false,
                    readData.last != HTTPMessage.Decoder.nl,
+                   readData[readData.count - 2] == HTTPMessage.Decoder.cr,
                    readData.count < headerMaxSize  {
                     let remainingSize = readData.count - headerMaxSize
                     try await read(remainingSize)
                 }
                 // verify header
-                guard let headerEndIndex = readData.firstIndex(of: HTTPMessage.Decoder.cr).map({ $0 + 1 }),
-                      readData.count > headerEndIndex else { // for newline
+                guard let headerEndIndex = readData.firstRange(of: HTTPMessage.Decoder.headerSuffixData)?.endIndex else {
                     try await respond(.payloadTooLarge)
                     return
                 }
@@ -261,7 +263,7 @@ internal extension HTTPServer {
                         try await respond(.payloadTooLarge)
                         return
                     }
-                    let targetSize = headerEndIndex + contentLength + 1
+                    let targetSize = headerEndIndex + contentLength
                     let remainder = targetSize - readData.count
                     if remainder > 0 {
                         try await read(remainder)

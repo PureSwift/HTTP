@@ -40,6 +40,7 @@ extension HTTPMessage {
             data.append(contentsOf: "\r\n".utf8)
         }
         data.append(contentsOf: "\r\n".utf8)
+        assert(data.suffix(4) == HTTPMessage.Decoder.headerSuffixData)
         data.append(body)
         return data
     }
@@ -168,4 +169,8 @@ extension HTTPMessage.Decoder {
     static var cr: UInt8 { 13 }
     
     static var headerSeparator: Character { ":" }
+    
+    static var headerSuffix: String { "\r\n\r\n" }
+    
+    static let headerSuffixData = Data(headerSuffix.utf8)
 }
