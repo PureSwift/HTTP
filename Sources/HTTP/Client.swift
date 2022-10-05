@@ -36,13 +36,14 @@ internal extension URLSession {
     
     func _data(for request: URLRequest) async throws -> (Data, URLResponse) {
         try await withCheckedThrowingContinuation { continuation in
-            self.dataTask(with: request) { data, response, error in
+            let task = self.dataTask(with: request) { data, response, error in
                 if let error = error {
                     continuation.resume(throwing: error)
                 } else {
                     continuation.resume(returning: (data ?? .init(), response!))
                 }
             }
+            task.resume()
         }
     }
 }
