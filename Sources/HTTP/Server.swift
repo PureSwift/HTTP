@@ -7,6 +7,7 @@
 
 import Foundation
 import Socket
+import Algorithms
 
 public final class HTTPServer {
     
@@ -104,6 +105,12 @@ internal extension HTTPServer {
         // log
         log?("[\(address)]: " + "Did disconnect. \(error?.localizedDescription ?? "")")
     }
+}
+
+internal extension HTTPServer {
+    
+    /// Total Length is the length of the datagram, measured in octets, including internet header and data. This field allows the length of a datagram to be up to 65,535 octets.
+    static var chunkSize: Int { 65_535 }
 }
 
 // MARK: - Supporting Types
@@ -222,23 +229,33 @@ internal extension HTTPServer {
         }
         
         private func read(_ length: Int) async throws {
-            let chunkSize = 536 // The default TCP Maximum Segment Size is 536
+            let chunkSize = HTTPServer.chunkSize
             var readLength = 0
             var readMore = true
+            var chunkCount = 0
             while readMore {
-                let chunk = try await socket.read(chunkSize)
+                let readSize = min(chunkSize, length)
+                let chunk = try await socket.read(readSize)
                 readLength += chunk.count
+                chunkCount += 1
                 self.readData.append(chunk)
-                readMore = readLength < length && chunk.count == chunkSize // need more data and read max
+                readMore = readLength < length && chunk.count == readSize // need more data and read max
             }
-            self.server.log?("[\(address)] Read \(readLength) bytes")
+            self.server.log?("[\(address)] Read \(readLength) bytes (\(chunkCount) chunks)")
+        }
+        
+        private func write(_ data: Data) async throws {
+            let chunkSize = HTTPServer.chunkSize
+            let chunks = data.chunks(ofCount: chunkSize)
+            for chunk in chunks {
+                try await socket.write(chunk)
+            }
+            self.server.log?("[\(address)] Wrote \(data.count) bytes (\(chunks.count) chunks)")
         }
         
         private func respond(_ response: HTTPResponse) async throws {
-            let chunkSize = 536 // The default TCP Maximum Segment Size is 536
-            let data = response.data
+            try await self.write(response.data)
             self.server.log?("[\(address)] Response \(response.code.rawValue) \(response.status) \(response.body.count) bytes")
-            try await socket.write(data)
             await socket.close()
         }
         

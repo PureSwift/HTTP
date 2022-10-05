@@ -21,13 +21,21 @@ let package = Package(
         .package(
             url: "https://github.com/PureSwift/Socket.git",
             branch: "main"
+        ),
+        .package(
+            url: "https://github.com/apple/swift-algorithms.git",
+            from: "1.0.0"
         )
     ],
     targets: [
         .target(
             name: "HTTP",
             dependencies: [
-                "Socket"
+                "Socket",
+                .product(
+                    name: "Algorithms",
+                    package: "swift-algorithms"
+                )
             ]
         ),
         .testTarget(
