@@ -16,7 +16,7 @@ public final class HTTPServer {
     
     internal let response: (IPAddress, HTTPRequest) async -> (HTTPResponse)
     
-    internal let log: (String) -> ()
+    internal let log: ((String) -> ())?
     
     internal let socket: Socket
     
@@ -35,19 +35,19 @@ public final class HTTPServer {
         log: ((String) -> ())? = nil,
         response: ((IPAddress, HTTPRequest) async -> HTTPResponse)? = nil
     ) async throws {
+        #if DEBUG
         let log = log ?? {
-            #if DEBUG
-            print("HTTPServer: \($0)")
-            #endif
+            NSLog("HTTPServer: \($0)")
         }
+        #endif
         self.configuration = configuration
+        self.log = log
         self.response = response ?? { (address, request) in
             #if DEBUG
             log("[\(address)] \(request.method) \(request.uri)")
             #endif
             return .init(code: .ok)
         }
-        self.log = log
         // create listening socket
         self.socket = try await Socket(.tcp, bind: IPv4SocketAddress(address: .any, port: configuration.port))
         try socket.fileDescriptor.listen(backlog: configuration.backlog)
@@ -61,7 +61,7 @@ public final class HTTPServer {
         assert(task == nil)
         // listening run loop
         self.task = Task.detached(priority: .high) { [weak self] in
-            self?.log("Started HTTP Server")
+            self?.log?("Started HTTP Server")
             do {
                 while let socket = self?.socket {
                     // wait for incoming sockets
@@ -69,16 +69,15 @@ public final class HTTPServer {
                     // read remote address
                     let address = try newSocket.fileDescriptor.peerAddress(IPv4SocketAddress.self).address // TODO: Support IPv6
                     if let self = self {
-                        // create connection actor
+                        self.log?("[\(address)] New connection")
                         let connection = await Connection(address: .v4(address), socket: newSocket, server: self)
                         await self.storage.newConnection(connection)
-                        self.log("[\(address)] New connection")
                     }
                 }
             }
             catch _ as CancellationError { }
             catch {
-                self?.log("Error waiting for new connection: \(error)")
+                self?.log?("Error waiting for new connection: \(error)")
             }
         }
     }
@@ -89,7 +88,7 @@ public final class HTTPServer {
         let storage = self.storage
         self.task?.cancel()
         self.task = nil
-        self.log("Stopped GATT Server")
+        self.log?("Stopped GATT Server")
         Task {
             await storage.removeAllConnections()
             await socket.close()
@@ -103,7 +102,7 @@ internal extension HTTPServer {
         // remove connection cache
         await storage.removeConnection(address)
         // log
-        log("[\(address)]: " + "Did disconnect. \(error?.localizedDescription ?? "")")
+        log?("[\(address)]: " + "Did disconnect. \(error?.localizedDescription ?? "")")
     }
 }
 
@@ -125,7 +124,7 @@ public extension HTTPServer {
             port: UInt16 = 8080,
             backlog: Int = 10_000,
             headerMaxSize: Int = 4096,
-            bodyMaxSize: Int = 1024 * 1024 * 5
+            bodyMaxSize: Int = 1024 * 1024 * 10
         ) {
             self.port = port
             self.backlog = backlog
@@ -223,14 +222,22 @@ internal extension HTTPServer {
         }
         
         private func read(_ length: Int) async throws {
-            let data = try await socket.read(length)
-            self.server.log("[\(address)] Read \(data.count) bytes")
-            self.readData.append(data)
+            let chunkSize = 536 // The default TCP Maximum Segment Size is 536
+            var readLength = 0
+            var readMore = true
+            while readMore {
+                let chunk = try await socket.read(chunkSize)
+                readLength += chunk.count
+                self.readData.append(chunk)
+                readMore = readLength < length && chunk.count == chunkSize // need more data and read max
+            }
+            self.server.log?("[\(address)] Read \(readLength) bytes")
         }
         
         private func respond(_ response: HTTPResponse) async throws {
+            let chunkSize = 536 // The default TCP Maximum Segment Size is 536
             let data = response.data
-            self.server.log("[\(address)] Response \(response.code.rawValue) \(response.status) \(response.body.count) bytes")
+            self.server.log?("[\(address)] Response \(response.code.rawValue) \(response.status) \(response.body.count) bytes")
             try await socket.write(data)
             await socket.close()
         }
@@ -276,12 +283,12 @@ internal extension HTTPServer {
                 } else {
                     request.body = Data()
                 }
-                self.server.log("[\(address)] \(request.method) \(request.uri) \(request.body.count) bytes")
+                self.server.log?("[\(address)] \(request.method) \(request.uri) \(request.body.count) bytes")
                 // respond
                 let response = await self.server.response(address, request)
                 try await respond(response)
             } catch {
-                self.server.log("[\(address)] \(error.localizedDescription)")
+                self.server.log?("[\(address)] \(error.localizedDescription)")
                 await self.socket.close()
             }
         }

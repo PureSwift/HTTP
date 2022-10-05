@@ -146,6 +146,7 @@ final class HTTPTests: XCTestCase {
     func testServerGetBlob() async throws {
         let port = UInt16.random(in: 8080 ..< 9000)
         let blob = Data(repeating: .random(in: .min ... .max), count: 1024 * .random(in: 1 ... 10))
+        print("Blob:", blob.count)
         var server: HTTPServer? = try await HTTPServer(configuration: .init(port: port), response: { (address, request) in
             if request.uri == "/blob", request.method == .get {
                 return request.body.isEmpty ? .init(code: .ok, body: blob) : .init(code: .badRequest)
@@ -169,6 +170,61 @@ final class HTTPTests: XCTestCase {
     func testServerPostBlob() async throws {
         let port = UInt16.random(in: 8080 ..< 9000)
         let blob = Data(repeating: .random(in: .min ... .max), count: 1024 * .random(in: 1 ... 10))
+        print("Blob:", blob.count)
+        var server: HTTPServer? = try await HTTPServer(configuration: .init(port: port), response: { (address, request) in
+            if request.uri == "/blob", request.method == .post {
+                XCTAssertEqual(request.headers[.contentLength], blob.count.description)
+                XCTAssertEqual(request.body.count, blob.count)
+                XCTAssertEqual(request.body, blob)
+                return .init(code: request.body == blob ? .ok : .badRequest)
+            }  else {
+                return .init(code: 404)
+            }
+        })
+        assert(server != nil)
+        let client = URLSession(configuration: .ephemeral)
+        let serverURL  = URL(string: "http://localhost:\(port)")!
+        
+        var request = URLRequest(url: serverURL.appendingPathComponent("blob"))
+        request.httpMethod = HTTPMethod.post.rawValue
+        request.httpBody = blob
+        let (data, urlResponse) = try await client.data(for: request)
+        XCTAssertEqual((urlResponse as! HTTPURLResponse).statusCode, 200)
+        XCTAssert(data.isEmpty)
+        
+        //
+        server = nil
+        try await Task.sleep(nanoseconds: 100_000)
+    }
+    
+    func testServerGetLargeBlob() async throws {
+        let port = UInt16.random(in: 8080 ..< 9000)
+        let blob = Data(repeating: .random(in: .min ... .max), count: 1024 * 1024 * .random(in: 2 ... 4))
+        print("Blob:", blob.count)
+        var server: HTTPServer? = try await HTTPServer(configuration: .init(port: port), response: { (address, request) in
+            if request.uri == "/blob", request.method == .get {
+                return request.body.isEmpty ? .init(code: .ok, body: blob) : .init(code: .badRequest)
+            } else {
+                return .init(code: 404)
+            }
+        })
+        assert(server != nil)
+        let client = URLSession(configuration: .ephemeral)
+        let serverURL  = URL(string: "http://localhost:\(port)")!
+        
+        let (data, urlResponse) = try await client.data(for: URLRequest(url: serverURL.appendingPathComponent("blob")))
+        XCTAssertEqual((urlResponse as! HTTPURLResponse).statusCode, 200)
+        XCTAssertEqual(data, blob)
+        
+        //
+        server = nil
+        try await Task.sleep(nanoseconds: 100_000)
+    }
+    
+    func testServerPostLargeBlob() async throws {
+        let port = UInt16.random(in: 8080 ..< 9000)
+        let blob = Data(repeating: .random(in: .min ... .max), count: 1024 * 1024 * .random(in: 2 ... 4))
+        print("Blob:", blob.count)
         var server: HTTPServer? = try await HTTPServer(configuration: .init(port: port), response: { (address, request) in
             if request.uri == "/blob", request.method == .post {
                 XCTAssertEqual(request.headers[.contentLength], blob.count.description)
