@@ -6,7 +6,7 @@
 //  Copyright © 2015 PureSwift. All rights reserved.
 //
 
-import HTTPTypes
+@_exported import HTTPTypes
 
 /// HTTP Method
 public typealias HTTPMethod = HTTPTypes.HTTPRequest.Method

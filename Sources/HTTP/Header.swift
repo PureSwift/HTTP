@@ -9,7 +9,7 @@ import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
-import HTTPTypes
+@_exported import HTTPTypes
 #if canImport(HTTPTypesFoundation)
 import HTTPTypesFoundation
 #endif
