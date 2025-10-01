@@ -13,7 +13,7 @@ import FoundationNetworking
 import HTTPTypes
 import HTTPTypesFoundation
 
-internal extension URLRequest {
+public extension URLRequest {
     
     init?(_ request: HTTPRequest, baseURL: URL) {
         guard var baseUrlComponents = URLComponents(string: baseURL.absoluteString),
@@ -44,7 +44,7 @@ internal extension URLRequest {
     }
 }
 
-internal extension HTTPResponse {
+public extension HTTPResponse {
     
     init?(_ urlResponse: URLResponse) {
         guard let httpResponse = urlResponse as? HTTPURLResponse else {
