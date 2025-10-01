@@ -5,57 +5,60 @@
 //  Created by Alsey Coleman Miller on 10/2/22.
 //
 
-/// HTTP Method
-public struct HTTPHeader: RawRepresentable, Codable, Equatable, Hashable, Sendable {
+import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+import HTTPTypes
+#if canImport(HTTPTypesFoundation)
+import HTTPTypesFoundation
+#endif
+
+public protocol HTTPHeader {
     
-    public let rawValue: String
+    static var httpHeaderName: HTTPTypes.HTTPField.Name { get }
     
-    public init(rawValue: String) {
-        self.rawValue = rawValue
-    }
+    var httpHeaderValue: String { get }
 }
 
-// MARK: - ExpressibleByStringLiteral
-
-extension HTTPHeader: ExpressibleByStringLiteral {
+extension HTTPHeader where Self: RawRepresentable, RawValue == String {
     
-    public init(stringLiteral value: String) {
-        self.init(rawValue: value)
-    }
-}
-
-// MARK: - CustomStringConvertible
-
-extension HTTPHeader: CustomStringConvertible, CustomDebugStringConvertible {
-    
-    public var description: String {
-        rawValue
-    }
-    
-    public var debugDescription: String {
+    public var httpHeaderValue: String {
         rawValue
     }
 }
 
-// MARK: - Definitions
+public extension HTTPField {
+    
+    init<T: HTTPHeader>(header: T) {
+        self.init(name: T.httpHeaderName, value: header.httpHeaderValue)
+    }
+}
 
-public extension HTTPHeader {
+#if canImport(HTTPTypesFoundation)
+public extension URLRequest {
     
-    /// `Authorization` HTTP header
-    static var authorization: HTTPHeader    { "Authorization" }
+    mutating func setHeader<T: HTTPHeader>(_ header: T) {
+        let field = HTTPField(header: header)
+        self.setValue(field.value, forHTTPHeaderField: field.name.rawName)
+    }
+}
+#endif
+
+public extension HTTPRequest {
     
-    /// `Date` HTTP header
-    static var date: HTTPHeader             { "Date" }
+    mutating func setHeader<T: HTTPHeader>(_ header: T) {
+        let field = HTTPField(header: header)
+        self.headerFields[field.name] = field.value
+    }
+}
+
+public extension HTTPFields {
     
-    /// `Server` HTTP header
-    static var server: HTTPHeader           { "Server" }
-    
-    /// `Content-Type` HTTP header
-    static var contentType: HTTPHeader      { "Content-Type" }
-    
-    /// `Content-Length` HTTP header
-    static var contentLength: HTTPHeader    { "Content-Length" }
-    
-    /// `User-Agent` HTTP Header
-    static var userAgent: HTTPHeader        { "User-Agent" }
+    init(headers: [any HTTPHeader]) {
+        self.init()
+        for header in headers {
+            self[type(of: header).httpHeaderName] = header.httpHeaderValue
+        }
+    }
 }
