@@ -59,7 +59,7 @@ extension HTTPVersion: RawRepresentable {
 
 internal extension HTTPVersion {
     
-    static var minLength: Int { 8 } //prefix.count + 3 }
+    static var minLength: Int { 8 }
     
     static var prefix: String { "HTTP/" }
     
