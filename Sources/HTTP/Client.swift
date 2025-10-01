@@ -10,40 +10,46 @@ import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
+import HTTPTypes
+#if canImport(HTTPTypesFoundation)
+import HTTPTypesFoundation
+#endif
 
-/// HTTP Client
+/// URL Client
+public protocol URLClient {
+    
+    associatedtype URLError: Error
+    
+    func data(
+        for request: URLRequest
+    ) async throws(URLError) -> (Data, URLResponse)
+}
+
 public protocol HTTPClient {
     
-    func data(for request: URLRequest) async throws -> (Data, URLResponse)
+    associatedtype HTTPError: Error
+    
+    func data(
+        for request: HTTPRequest
+    ) async throws(HTTPError) -> (Data, HTTPResponse)
 }
 
-extension URLSession: HTTPClient {
+#if canImport(HTTPTypesFoundation)
+extension URLClient where Self: HTTPClient, Self.HTTPError == Self.URLError, Self.URLError == Foundation.URLError {
     
-    public func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        #if canImport(Darwin)
-        if #available(macOS 12, iOS 15.0, tvOS 15, watchOS 8, *) {
-            return try await self.data(for: request, delegate: nil)
-        } else {
-            return try await _data(for: request)
+    public func data(
+        for request: HTTPRequest
+    ) async throws(URLError) -> (Data, HTTPResponse) {
+        guard let urlRequest = URLRequest(httpRequest: request) else {
+            assertionFailure()
+            throw URLError(.unknown)
         }
-        #else
-        return try await _data(for: request)
-        #endif
+        let (data, urlResponse) = try await self.data(for: urlRequest)
+        guard let response = (urlResponse as? HTTPURLResponse)?.httpResponse else {
+            assertionFailure()
+            throw URLError(.unknown)
+        }
+        return (data, response)
     }
 }
-
-internal extension URLSession {
-    
-    func _data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        try await withCheckedThrowingContinuation { continuation in
-            let task = self.dataTask(with: request) { data, response, error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume(returning: (data ?? .init(), response!))
-                }
-            }
-            task.resume()
-        }
-    }
-}
+#endif
