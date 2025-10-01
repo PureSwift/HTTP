@@ -1,6 +1,4 @@
-// swift-tools-version:5.6
-// The swift-tools-version declares the minimum version of Swift required to build this package.
-
+// swift-tools-version:6.0
 import PackageDescription
 
 let package = Package(
@@ -19,22 +17,21 @@ let package = Package(
     ],
     dependencies: [
         .package(
-            url: "https://github.com/PureSwift/Socket.git",
-            branch: "main"
-        ),
-        .package(
-            url: "https://github.com/apple/swift-algorithms.git",
-            from: "1.0.0"
+            url: "https://github.com/apple/swift-http-types",
+            from: "1.4.0"
         )
     ],
     targets: [
         .target(
             name: "HTTP",
             dependencies: [
-                "Socket",
                 .product(
-                    name: "Algorithms",
-                    package: "swift-algorithms"
+                    name: "HTTPTypes",
+                    package: "swift-http-types"
+                ),
+                .product(
+                    name: "HTTPTypesFoundation",
+                    package: "swift-http-types"
                 )
             ]
         ),
