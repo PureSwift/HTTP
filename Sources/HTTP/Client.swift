@@ -16,7 +16,7 @@ import HTTPTypesFoundation
 #endif
 
 /// URL Client
-public protocol URLClient {
+public protocol URLClient: Sendable {
     
     associatedtype URLError: Error
     
@@ -25,7 +25,7 @@ public protocol URLClient {
     ) async throws(URLError) -> (Data, URLResponse)
 }
 
-public protocol HTTPClient {
+public protocol HTTPClient: Sendable {
     
     associatedtype HTTPError: Error
     
